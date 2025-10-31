@@ -3,8 +3,12 @@ import os
 import requests
 import json
 from discord.ext import commands
+from dotenv import load_dotenv  # <-- Add this import
 
 # --- Configuration ---
+# Load environment variables from a .env file
+load_dotenv()  # <-- Add this line to load the .env file
+
 # Load environment variables. Create a .env file in the same directory:
 # DISCORD_TOKEN=your_discord_bot_token
 # GITHUB_TOKEN=your_github_personal_access_token
@@ -157,3 +161,4 @@ async def on_command_error(ctx, error):
 if __name__ == "__main__":
     print("Starting bot...")
     bot.run(DISCORD_TOKEN)
+
