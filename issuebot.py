@@ -2,12 +2,7 @@ import discord
 import os
 import requests
 import json
-from discord.ext import commands
-from dotenv import load_dotenv  # <-- Add this import
-
-# --- Configuration ---
-# Load environment variables from a .env file
-load_dotenv()  # <-- Add this line to load the .env file
+from discord.commands import SlashCommandGroup
 
 # Load environment variables. Create a .env file in the same directory:
 # DISCORD_TOKEN=your_discord_bot_token
@@ -63,99 +58,89 @@ intents.message_content = True # Required to read message content
 intents.messages = True
 
 # Use commands.Bot for easier command handling
-bot = commands.Bot(command_prefix='!', intents=intents)
+bot = commands.Bot(intents=intents)
 
 @bot.event
 async def on_ready():
     """Event handler for when the bot has connected to Discord."""
-    print(f'Logged in as {bot.user.name} (ID: {bot.user.id})')
-    print('Bot is ready to receive commands.')
-    print('------')
+    print(f"Logged in as {bot.user}")
 
-@bot.command(name='bug', help='Report a bug. Usage: !bug [detailed description]')
-async def report_bug(ctx, *, description: str):
-    """
-    Command to report a bug.
-    It takes all text after '!bug ' as the description.
-    """
-    if not description:
-        await ctx.send("Please provide a description for the bug report. Usage: `!bug [description]`")
-        return
+report = bot.create_group("report", "Report a bug or suggest a feature")
 
-    # Create a descriptive title and body for the GitHub issue
-    title = f"Bug: {description[:50]}..." # Truncate title
-    body = (
-        f"**Bug Report from Discord**\n\n"
-        f"**Reported by:** {ctx.author.name} (ID: {ctx.author.id})\n\n"
-        f"**Description:**\n{description}"
+@report.command(name="issue", description="Report a bug or suggest a feature")
+async def issue(ctx):
+    await ctx.respond(embed=discord.Embed(title="Report an issue or suggest a feature"), view=MainView(ctx))
+
+
+class MainView(discord.ui.View):
+    def __init__(self) -> None:
+        super().__init__(timeout=None)
+
+    @discord.ui.button(
+        label="Bug Report", style=discord.ButtonStyle.red, custom_id="bug"
     )
-    
-    await ctx.send(f"Submitting bug report to GitHub...")
-    
-    issue_url = create_github_issue(title, body, "bug")
-    
-    if issue_url:
-        embed = discord.Embed(
-            title="Bug Report Created",
-            description=f"✅ Thanks, {ctx.author.mention}! Your bug report has been successfully created.",
-            color=discord.Color.red()
-        )
-        embed.add_field(name="Issue URL", value=f"[View on GitHub]({issue_url})", inline=False)
-        embed.add_field(name="Reported Bug", value=f"```{description}```", inline=False)
-        await ctx.send(embed=embed)
-    else:
-        await ctx.send(f"❌ Sorry, {ctx.author.mention}. There was an error creating the GitHub issue. Please notify an admin.")
+    async def button_callback(self, button, interaction):
+        await interaction.response.send_modal(ReportModal(issue_type="bug"))
 
-@bot.command(name='suggest', help='Make a suggestion. Usage: !suggest [detailed description]')
-async def make_suggestion(ctx, *, description: str):
-    """
-    Command to make a suggestion.
-    It takes all text after '!suggest ' as the description.
-    """
-    if not description:
-        await ctx.send("Please provide a description for your suggestion. Usage: `!suggest [description]`")
-        return
-
-    # Create a descriptive title and body for the GitHub issue
-    title = f"Suggestion: {description[:50]}..." # Truncate title
-    body = (
-        f"**Suggestion from Discord**\n\n"
-        f"**Submitted by:** {ctx.author.name} (ID: {ctx.author.id})\n\n"
-        f"**Suggestion:**\n{description}"
+    @discord.ui.button(
+        label="Suggestion", style=discord.ButtonStyle.green, custom_id="suggestion"
     )
-    
-    await ctx.send(f"Submitting suggestion to GitHub...")
-    
-    # Use "enhancement" or "suggestion" as the label, depending on your repo's setup
-    issue_url = create_github_issue(title, body, "suggestion") 
-    
-    if issue_url:
-        embed = discord.Embed(
-            title="Suggestion Submitted",
-            description=f"✅ Thanks, {ctx.author.mention}! Your suggestion has been successfully submitted.",
-            color=discord.Color.blue()
+    async def button_callback2(self, button, interaction):
+        await interaction.response.send_modal(
+            ReportModal(issue_type="suggestion")
         )
-        embed.add_field(name="Issue URL", value=f"[View on GitHub]({issue_url})", inline=False)
-        embed.add_field(name="Your Suggestion", value=f"```{description}```", inline=False)
-        await ctx.send(embed=embed)
-    else:
-        await ctx.send(f"❌ Sorry, {ctx.author.mention}. There was an error creating the GitHub issue. Please notify an admin.")
 
-# --- Error Handling for Commands ---
-@bot.event
-async def on_command_error(ctx, error):
-    if isinstance(error, commands.MissingRequiredArgument):
-        if ctx.command.name == 'bug':
-            await ctx.send("Please provide a description for the bug report. Usage: `!bug [description]`")
-        elif ctx.command.name == 'suggest':
-            await ctx.send("Please provide a description for your suggestion. Usage: `!suggest [description]`")
-    elif isinstance(error, commands.CommandNotFound):
-        # You can choose to ignore this or send a message
-        pass
-    else:
-        # Log other errors to the console
-        print(f"An error occurred with command {ctx.command}: {error}")
-        await ctx.send("An unexpected error occurred. Please try again.")
+
+class ReportModal(discord.ui.Modal):
+    def __init__(self, issue_type: str) -> None:
+        self.issue_type = issue_type
+        super().__init__(title=f"{issue_type.capitalize()} Report")
+        self.add_item(
+            discord.ui.InputText(
+                label="Title",
+                placeholder=f"Title of your {issue_type} report",
+                style=discord.InputTextStyle.short,
+                max_length=50,
+            )
+        )
+        self.add_item(
+            discord.ui.InputText(
+                label="Description",
+                placeholder=f"Description of your {issue_type} report",
+                style=discord.InputTextStyle.long,
+                max_length=1000,
+            )
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        title = self.children[0].value
+        description = self.children[1].value
+
+        # Create a descriptive title and body for the GitHub issue
+        github_title = f"{self.issue_type.capitalize()}: {title}"
+        github_body = (
+            f"**{self.issue_type.capitalize()} Report from Discord**\n\n"
+            f"**Reported by:** {interaction.user.name} (ID: {interaction.user.id})\n\n"
+            f"**Title:** {title}\n"
+            f"**Description:**\n{description}"
+        )
+
+        await interaction.response.send_message("Submitting to GitHub...", ephemeral=True)
+
+        issue_url = create_github_issue(github_title, github_body, self.issue_type)
+
+        if issue_url:
+            embed = discord.Embed(
+                title=f"{self.issue_type.capitalize()} Report Created",
+                description=f"✅ Thanks, {interaction.user.mention}! Your {self.issue_type} report has been successfully created.",
+                color=discord.Color.green() if self.issue_type == "suggestion" else discord.Color.red()
+            )
+            embed.add_field(name="Issue URL", value=f"[View on GitHub]({issue_url})", inline=False)
+            embed.add_field(name="Title", value=title, inline=False)
+            embed.add_field(name="Description", value=f"```{description}```", inline=False)
+            await interaction.followup.send(embed=embed)
+        else:
+            await interaction.followup.send(f"❌ Sorry, {interaction.user.mention}. There was an error creating the GitHub issue.")
 
 # --- Run the Bot ---
 if __name__ == "__main__":
