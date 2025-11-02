@@ -146,4 +146,3 @@ class ReportModal(discord.ui.Modal):
 if __name__ == "__main__":
     print("Starting bot...")
     bot.run(DISCORD_TOKEN)
-
