@@ -67,25 +67,38 @@ async def on_ready():
     """Event handler for when the bot has connected to Discord."""
     print(f"Logged in as {bot.user}")
 
+
+@bot.event
+async def on_message(message):
+    """Event handler for when a message is sent to a channel."""
+    # Ignore messages from the bot itself
+    if message.author == bot.user:
+        return
+
+    content = message.content.lower()
+    # Keywords to trigger the bot
+    bug_keywords = ["bug", "issue", "error", "problem"]
+    suggestion_keywords = ["suggestion", "idea", "feature", "improve"]
+
+    # Check if the message contains any of the keywords
+    if any(keyword in content for keyword in bug_keywords) or any(keyword in content for keyword in suggestion_keywords):
+        # Respond with the view to the user's message
+        view = MainView(message_content=message.content)
+        await message.reply(
+            embed=discord.Embed(
+                title="Did you want to report an issue or suggest a feature?",
+                description="Click a button below to get started."
+            ),
+            view=view
+        )
+        return # Stop processing to avoid conflicts if other commands are added
+
+
 report = bot.create_group("report", "Report a bug or suggest a feature")
 
 @report.command(name="issue", description="Report a bug or suggest a feature")
 async def issue(ctx):
     await ctx.respond(embed=discord.Embed(title="Report an issue or suggest a feature"), view=MainView())
-
-
-@bot.message_command(name="Create Issue from Message")
-async def create_issue_context(ctx, message: discord.Message):
-    """Creates a GitHub issue from a message."""
-    view = MainView(message_content=message.content)
-    await ctx.respond(
-        embed=discord.Embed(
-            title="Report an issue or suggest a feature",
-            description="What type of issue is this?"
-        ),
-        view=view,
-        ephemeral=True
-    )
 
 
 class MainView(discord.ui.View):
