@@ -3,6 +3,7 @@ import os
 import requests
 import json
 from discord.commands import SlashCommandGroup
+from dotenv import load_dotenv
 
 # Load environment variables. Create a .env file in the same directory:
 # DISCORD_TOKEN=your_discord_bot_token
@@ -10,6 +11,7 @@ from discord.commands import SlashCommandGroup
 # GITHUB_REPO=your_username/your_repo_name
 #
 # or set them in your deployment environment.
+load_dotenv()
 
 DISCORD_TOKEN = os.environ.get('DISCORD_TOKEN')
 GITHUB_TOKEN = os.environ.get('GITHUB_TOKEN')
@@ -58,7 +60,7 @@ intents.message_content = True # Required to read message content
 intents.messages = True
 
 # Use commands.Bot for easier command handling
-bot = commands.Bot(intents=intents)
+bot = discord.Bot(intents=intents)
 
 @bot.event
 async def on_ready():
@@ -69,30 +71,45 @@ report = bot.create_group("report", "Report a bug or suggest a feature")
 
 @report.command(name="issue", description="Report a bug or suggest a feature")
 async def issue(ctx):
-    await ctx.respond(embed=discord.Embed(title="Report an issue or suggest a feature"), view=MainView(ctx))
+    await ctx.respond(embed=discord.Embed(title="Report an issue or suggest a feature"), view=MainView())
+
+
+@bot.message_command(name="Create Issue from Message")
+async def create_issue_context(ctx, message: discord.Message):
+    """Creates a GitHub issue from a message."""
+    view = MainView(message_content=message.content)
+    await ctx.respond(
+        embed=discord.Embed(
+            title="Report an issue or suggest a feature",
+            description="What type of issue is this?"
+        ),
+        view=view,
+        ephemeral=True
+    )
 
 
 class MainView(discord.ui.View):
-    def __init__(self) -> None:
+    def __init__(self, message_content: str = None) -> None:
         super().__init__(timeout=None)
+        self.message_content = message_content
 
     @discord.ui.button(
         label="Bug Report", style=discord.ButtonStyle.red, custom_id="bug"
     )
     async def button_callback(self, button, interaction):
-        await interaction.response.send_modal(ReportModal(issue_type="bug"))
+        await interaction.response.send_modal(ReportModal(issue_type="bug", message_content=self.message_content))
 
     @discord.ui.button(
         label="Suggestion", style=discord.ButtonStyle.green, custom_id="suggestion"
     )
     async def button_callback2(self, button, interaction):
         await interaction.response.send_modal(
-            ReportModal(issue_type="suggestion")
+            ReportModal(issue_type="suggestion", message_content=self.message_content)
         )
 
 
 class ReportModal(discord.ui.Modal):
-    def __init__(self, issue_type: str) -> None:
+    def __init__(self, issue_type: str, message_content: str = None) -> None:
         self.issue_type = issue_type
         super().__init__(title=f"{issue_type.capitalize()} Report")
         self.add_item(
@@ -109,6 +126,7 @@ class ReportModal(discord.ui.Modal):
                 placeholder=f"Description of your {issue_type} report",
                 style=discord.InputTextStyle.long,
                 max_length=1000,
+                value=message_content,
             )
         )
 
