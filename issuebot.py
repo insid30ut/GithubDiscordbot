@@ -68,15 +68,40 @@ async def on_ready():
     print(f"Logged in as {bot.user}")
 
 
-issue = bot.create_group("issue", "Submit a bug report or feature suggestion")
+class ReportView(discord.ui.View):
+    def __init__(self):
+        # Timeout in seconds
+        super().__init__(timeout=180)
 
-@issue.command(name="bug", description="Report a bug")
-async def bug(ctx: discord.ApplicationContext):
-    await ctx.response.send_modal(ReportModal(issue_type="bug"))
+    @discord.ui.select(
+        placeholder="Choose the report type...",
+        options=[
+            discord.SelectOption(
+                label="Bug Report",
+                value="bug",
+                description="Report a bug or issue."
+            ),
+            discord.SelectOption(
+                label="Feature Suggestion",
+                value="suggestion",
+                description="Suggest a new feature or enhancement."
+            ),
+        ],
+    )
+    async def select_callback(self, select: discord.ui.Select, interaction: discord.Interaction):
+        """The callback function for the select menu."""
+        issue_type = select.values[0]
+        await interaction.response.send_modal(ReportModal(issue_type=issue_type))
 
-@issue.command(name="suggestion", description="Suggest a new feature")
-async def suggestion(ctx: discord.ApplicationContext):
-    await ctx.response.send_modal(ReportModal(issue_type="suggestion"))
+
+@bot.slash_command(name="report", description="Submit a bug report or feature suggestion")
+async def report(ctx: discord.ApplicationContext):
+    """Shows a view with a select menu for picking bug or suggestion."""
+    await ctx.response.send_message(
+        "Please select the type of report you'd like to submit:",
+        view=ReportView(),
+        ephemeral=True
+    )
 
 
 class ReportModal(discord.ui.Modal):
