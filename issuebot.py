@@ -111,7 +111,7 @@ class ReportModal(discord.ui.Modal):
         self.add_item(
             discord.ui.InputText(
                 label="Title",
-                placeholder=f"Title of your {issue_type}",
+                placeholder=f"Title of the {issue_type}",
                 style=discord.InputTextStyle.short,
                 max_length=50,
             )
@@ -119,7 +119,7 @@ class ReportModal(discord.ui.Modal):
         self.add_item(
             discord.ui.InputText(
                 label="Description",
-                placeholder=f"Description of your {issue_type}",
+                placeholder=f"Description of the {issue_type}",
                 style=discord.InputTextStyle.long,
                 max_length=1000,
             )
