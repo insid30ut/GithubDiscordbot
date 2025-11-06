@@ -125,7 +125,6 @@ class ReportModal(discord.ui.Modal):
             )
             embed.add_field(name="Issue URL", value=f"[View on GitHub]({issue_url})", inline=False)
             embed.add_field(name="Title", value=title, inline=False)
-            embed.add_field(name="Description", value=f"```{description}```", inline=False)
             await interaction.followup.send(embed=embed)
         else:
             await interaction.followup.send(f"❌ Sorry, {interaction.user.mention}. There was an error creating the GitHub issue.")
