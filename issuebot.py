@@ -68,61 +68,19 @@ async def on_ready():
     print(f"Logged in as {bot.user}")
 
 
-@bot.event
-async def on_message(message):
-    """Event handler for when a message is sent to a channel."""
-    # Ignore messages from the bot itself
-    if message.author == bot.user:
-        return
+issue = bot.create_group("issue", "Submit a bug report or feature suggestion")
 
-    content = message.content.lower()
-    # Keywords to trigger the bot
-    bug_keywords = ["bug", "issue", "error", "problem"]
-    suggestion_keywords = ["suggestion", "idea", "feature", "improve"]
+@issue.command(name="bug", description="Report a bug")
+async def bug(ctx: discord.ApplicationContext):
+    await ctx.response.send_modal(ReportModal(issue_type="bug"))
 
-    # Check if the message contains any of the keywords
-    if any(keyword in content for keyword in bug_keywords) or any(keyword in content for keyword in suggestion_keywords):
-        # Respond with the view to the user's message
-        view = MainView(message_content=message.content)
-        await message.reply(
-            embed=discord.Embed(
-                title="Did you want to report an issue or suggest a feature?",
-                description="Click a button below to get started."
-            ),
-            view=view
-        )
-        return # Stop processing to avoid conflicts if other commands are added
-
-
-report = bot.create_group("report", "Report a bug or suggest a feature")
-
-@report.command(name="issue", description="Report a bug or suggest a feature")
-async def issue(ctx):
-    await ctx.respond(embed=discord.Embed(title="Report an issue or suggest a feature"), view=MainView())
-
-
-class MainView(discord.ui.View):
-    def __init__(self, message_content: str = None) -> None:
-        super().__init__(timeout=None)
-        self.message_content = message_content
-
-    @discord.ui.button(
-        label="Bug Report", style=discord.ButtonStyle.red, custom_id="bug"
-    )
-    async def button_callback(self, button, interaction):
-        await interaction.response.send_modal(ReportModal(issue_type="bug", message_content=self.message_content))
-
-    @discord.ui.button(
-        label="Suggestion", style=discord.ButtonStyle.green, custom_id="suggestion"
-    )
-    async def button_callback2(self, button, interaction):
-        await interaction.response.send_modal(
-            ReportModal(issue_type="suggestion", message_content=self.message_content)
-        )
+@issue.command(name="suggestion", description="Suggest a new feature")
+async def suggestion(ctx: discord.ApplicationContext):
+    await ctx.response.send_modal(ReportModal(issue_type="suggestion"))
 
 
 class ReportModal(discord.ui.Modal):
-    def __init__(self, issue_type: str, message_content: str = None) -> None:
+    def __init__(self, issue_type: str) -> None:
         self.issue_type = issue_type
         super().__init__(title=f"{issue_type.capitalize()} Report")
         self.add_item(
@@ -139,7 +97,6 @@ class ReportModal(discord.ui.Modal):
                 placeholder=f"Description of your {issue_type} report",
                 style=discord.InputTextStyle.long,
                 max_length=1000,
-                value=message_content,
             )
         )
 
