@@ -98,7 +98,7 @@ class ReportView(discord.ui.View):
 async def report(ctx: discord.ApplicationContext):
     """Shows a view with a select menu for picking bug or suggestion."""
     await ctx.response.send_message(
-        "Please select the type of report you'd like to submit:",
+        "Please select the type of Github issue you'd like to submit:",
         view=ReportView(),
         ephemeral=True
     )
@@ -111,7 +111,7 @@ class ReportModal(discord.ui.Modal):
         self.add_item(
             discord.ui.InputText(
                 label="Title",
-                placeholder=f"Title of your {issue_type} report",
+                placeholder=f"Title of your {issue_type}",
                 style=discord.InputTextStyle.short,
                 max_length=50,
             )
@@ -119,7 +119,7 @@ class ReportModal(discord.ui.Modal):
         self.add_item(
             discord.ui.InputText(
                 label="Description",
-                placeholder=f"Description of your {issue_type} report",
+                placeholder=f"Description of your {issue_type}",
                 style=discord.InputTextStyle.long,
                 max_length=1000,
             )
