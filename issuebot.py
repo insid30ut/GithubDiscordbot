@@ -24,8 +24,15 @@ if not all([DISCORD_TOKEN, GITHUB_TOKEN, GITHUB_REPO]):
 
 # --- GitHub API Function ---
 def create_github_issue(title, body, label):
-    """
-    Creates a new issue on the configured GitHub repository.
+    """Creates a new issue on the configured GitHub repository.
+
+    Args:
+        title (str): The title of the GitHub issue.
+        body (str): The body content of the GitHub issue.
+        label (str): The label to apply to the GitHub issue.
+
+    Returns:
+        str: The URL of the newly created GitHub issue, or None if creation fails.
     """
     url = f"https://api.github.com/repos/{GITHUB_REPO}/issues"
     
@@ -64,13 +71,20 @@ bot = discord.Bot(intents=intents)
 
 @bot.event
 async def on_ready():
-    """Event handler for when the bot has connected to Discord."""
+    """Prints a message to the console when the bot is successfully connected."""
     print(f"Logged in as {bot.user}")
 
 
 @bot.event
 async def on_message(message):
-    """Event handler for when a message is sent to a channel."""
+    """Event handler for when a message is sent to a channel.
+
+    This function listens for messages containing keywords related to bugs or
+    suggestions and prompts the user to create a GitHub issue.
+
+    Args:
+        message (discord.Message): The message object from the Discord API.
+    """
     # Ignore messages from the bot itself
     if message.author == bot.user:
         return
@@ -98,10 +112,27 @@ report = bot.create_group("report", "Report a bug or suggest a feature")
 
 @report.command(name="issue", description="Report a bug or suggest a feature")
 async def issue(ctx):
+    """Slash command to initiate the issue reporting process.
+
+    This command displays a view with buttons to report a bug or suggest a feature.
+
+    Args:
+        ctx (discord.ApplicationContext): The context of the slash command.
+    """
     await ctx.respond(embed=discord.Embed(title="Report an issue or suggest a feature"), view=MainView())
 
 
 class MainView(discord.ui.View):
+    """A Discord UI View that presents buttons for creating bug reports or suggestions.
+
+    This class creates a view with two buttons: "Bug Report" and "Suggestion".
+    When a button is clicked, it opens a modal for the user to enter the
+    details of their report.
+
+    Attributes:
+        message_content (str, optional): The content of the message that
+            triggered the view. Defaults to None.
+    """
     def __init__(self, message_content: str = None) -> None:
         super().__init__(timeout=None)
         self.message_content = message_content
@@ -110,18 +141,49 @@ class MainView(discord.ui.View):
         label="Bug Report", style=discord.ButtonStyle.red, custom_id="bug"
     )
     async def button_callback(self, button, interaction):
+        """Callback for the "Bug Report" button.
+
+        This function is executed when a user clicks the "Bug Report" button.
+        It opens a modal for the user to enter the bug report details.
+
+        Args:
+            button (discord.ui.Button): The button that was clicked.
+            interaction (discord.Interaction): The interaction object from the
+                Discord API.
+        """
         await interaction.response.send_modal(ReportModal(issue_type="bug", message_content=self.message_content))
 
     @discord.ui.button(
         label="Suggestion", style=discord.ButtonStyle.green, custom_id="suggestion"
     )
     async def button_callback2(self, button, interaction):
+        """Callback for the "Suggestion" button.
+
+        This function is executed when a user clicks the "Suggestion" button.
+        It opens a modal for the user to enter the suggestion details.
+
+        Args:
+            button (discord.ui.Button): The button that was clicked.
+            interaction (discord.Interaction): The interaction object from the
+                Discord API.
+        """
         await interaction.response.send_modal(
             ReportModal(issue_type="suggestion", message_content=self.message_content)
         )
 
 
 class ReportModal(discord.ui.Modal):
+    """A Discord UI Modal for submitting bug reports or suggestions.
+
+    This class creates a modal with input fields for a title and description.
+    When the user submits the modal, it creates a GitHub issue with the
+    provided information.
+
+    Attributes:
+        issue_type (str): The type of issue, either "bug" or "suggestion".
+        message_content (str, optional): The content of the message that
+            triggered the modal. Defaults to None.
+    """
     def __init__(self, issue_type: str, message_content: str = None) -> None:
         self.issue_type = issue_type
         super().__init__(title=f"{issue_type.capitalize()} Report")
@@ -144,6 +206,16 @@ class ReportModal(discord.ui.Modal):
         )
 
     async def callback(self, interaction: discord.Interaction):
+        """Callback for the modal submission.
+
+        This function is executed when a user submits the modal. It creates a
+        GitHub issue with the provided information and sends a confirmation
+        message to the user.
+
+        Args:
+            interaction (discord.Interaction): The interaction object from the
+                Discord API.
+        """
         title = self.children[0].value
         description = self.children[1].value
 
