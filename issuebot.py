@@ -94,8 +94,8 @@ class ReportView(discord.ui.View):
         await interaction.response.send_modal(ReportModal(issue_type=issue_type))
 
 
-@bot.slash_command(name="report", description="Submit a bug report or feature suggestion")
-async def report(ctx: discord.ApplicationContext):
+@bot.slash_command(name="issue", description="Submit a bug report or feature suggestion")
+async def issue(ctx: discord.ApplicationContext):
     """Shows a view with a select menu for picking bug or suggestion."""
     await ctx.response.send_message(
         "Please select the type of Github issue you'd like to submit:",
